@@ -14,8 +14,8 @@ import java.util.Base64;
 
 public class Intrusense {
 
-    private static final int MAX_FAILED = 5;
-    private static final Duration LOCK_DURATION = Duration.ofMinutes(30);
+    private static final int MAX_FAILED = 0;
+    private static final Duration LOCK_DURATION = Duration.ofMinutes(50);
     private static final double STYLO_THRESHOLD = 0.65;
 
     public static class Database {
