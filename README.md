@@ -1,67 +1,115 @@
-Social Media Intrusion Detection System
+# InterleaveLab
 
-## Overview
-This project is a Java-based social media intrusion detection system designed to monitor user authentication activity and detect suspicious or malicious behavior using rule-based security checks.
+InterleaveLab is a developer tool that detects race conditions and concurrency bugs in backend APIs by generating controlled request interleavings, checking application invariants, and producing reproducible evidence of failures.
 
-The system focuses on identifying common attack patterns such as brute force login attempts, SQL injection attempts, password spraying, and unusual login behavior. Detected security events are logged and can be viewed through an admin dashboard.
+## Why this project matters
 
+Modern backend systems fail silently when multiple requests happen simultaneously. A booking API that allows two users to reserve the last seat, both receiving confirmation, represents a real production bug. Ordinary unit tests miss this. InterleaveLab focuses on generating controlled request interleavings, checking invariants, and producing clear evidence of failures.
 
-## Features
-- Secure user registration and login
-- Password hashing using industry-standard techniques
-- Tracking of failed login attempts and account lockout
-- Detection of common attacks:
-  - SQL Injection attempts
-  - Brute force attacks
-  - Password spraying
-  - Unusual login times
-  - Multiple IP login attempts
-- Stylometry-based behavioral analysis using writing patterns
-- Security event logging and monitoring dashboard
-- Admin view for logs and security statistics
+## Core features
 
+- Concurrent workload generation
+- Invariant checking and violation detection
+- Deterministic replay for reproducibility
+- Counterexample generation for debugging
+- Regression testing capabilities
+- Benchmarking ready design
 
-## Tech Stack
-- Java (Core Java, Swing for GUI)
-- DBMS (SQL)
-- Git & GitHub
+## Project structure
 
-
-## Project Structure
-```text
-social-media-intrusion-detection-system/
-│
-├── src/
-│   └── Intrusense.java
-│
-├── database/
-│   └── setup.sql
-│
-└── README.md
+```
+app/
+  api/
+    routes.py          API endpoints
+  services/
+    inventory.py       Booking logic and invariant checking
+    interleaving.py    Request ordering and counterexample search
+    engine.py          Orchestration layer
+  config.py           Configuration constants
+  main.py             Application factory
+tests/
+  test_inventory.py   Inventory tests
+  test_api.py         API endpoint tests
+  test_interleaving.py Interleaving logic tests
+.github/workflows/
+  ci.yml              GitHub Actions CI pipeline
 ```
 
+## Local setup
 
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
 
+## API endpoints
 
-## How It Works 
-1. Users enroll with a username, password, and optional writing sample.
-2. Passwords are securely hashed before storage.
-3. During login, the system validates credentials and monitors behavior.
-4. Login attempts are logged and analyzed using rule-based checks.
-5. Suspicious activities are recorded as security events.
-6. Admin users can view logs and security statistics through the dashboard.
+### Health check
 
+```bash
+curl http://localhost:8000/health
+```
 
-## Database Design
-The database schema supports:
-- User authentication data
-- Stylometry profiles for behavioral comparison
-- Login attempt logs
-- Security event logging
+### Get status
 
-The SQL schema is available in the `database/setup.sql` file.
+```bash
+curl http://localhost:8000/status
+```
 
+### Detect concurrency bugs
 
+```bash
+curl -X POST http://localhost:8000/scenarios \
+  -H "Content-Type: application/json" \
+  -d '{"capacity": 1, "users": ["alice", "bob"]}'
+```
 
-## Disclaimer
-This project is developed for academic and learning purposes to demonstrate intrusion detection concepts and secure authentication practices.
+### Replay a specific schedule
+
+```bash
+curl -X POST http://localhost:8000/replay \
+  -H "Content-Type: application/json" \
+  -d '{"capacity": 1, "schedule": ["alice_book", "bob_book"]}'
+```
+
+### Create booking
+
+```bash
+curl -X POST http://localhost:8000/book \
+  -H "Content-Type: application/json" \
+  -d '{"user_id": "alice", "booking_id": "b1", "quantity": 1}'
+```
+
+## Testing
+
+Run all tests with verbose output:
+
+```bash
+pytest -v
+```
+
+Run specific test file:
+
+```bash
+pytest tests/test_inventory.py -v
+```
+
+With coverage:
+
+```bash
+pytest --cov=app tests/
+```
+
+## How it works
+
+1. Define a scenario with users and inventory capacity
+2. Engine generates all possible request orderings
+3. Each ordering is executed against invariant checks
+4. If a violation is found, the exact sequence is returned
+5. Developers can replay and verify the fix
+
+## Resume value
+
+This project demonstrates solid backend engineering skills: concurrent systems thinking, API design, invariant based testing, and practical debugging techniques for production bugs.
