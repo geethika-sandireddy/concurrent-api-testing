@@ -1,0 +1,22 @@
+"""Tests for replay and benchmark helpers."""
+from core.benchmark import run_benchmark
+from core.replayer import Replayer, build_demo_schedule
+
+
+def test_replayer_reproduces_failed_schedule():
+    """A fixed repro schedule should deterministically reproduce the oversell bug."""
+    replayer = Replayer(total_seats=1)
+    result = replayer.replay_schedule(build_demo_schedule())
+
+    assert result.failed_invariant is True
+    assert result.available == -1
+    assert result.booked == 2
+
+
+def test_benchmark_detects_oversell():
+    """Benchmark output should clearly show the inventory went negative."""
+    report = run_benchmark(total_users=3, max_workers=3)
+
+    assert report["attempts"] == 3
+    assert report["oversold"] is True
+    assert report["booked"] == 3

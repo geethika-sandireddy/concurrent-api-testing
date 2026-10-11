@@ -1,0 +1,61 @@
+"""Replay and benchmarking helpers for InterleaveLab."""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from core.scheduler import BuggyInventoryStore
+
+
+@dataclass
+class ReplayResult:
+    """Summary of a replayed execution."""
+    schedule: List[Tuple[str, int]]
+    available: int
+    booked: int
+    operations: List[str]
+    failed_invariant: bool
+
+
+class Replayer:
+    """Deterministically replays a recorded request schedule."""
+
+    def __init__(self, total_seats: int, event_id: str = "event_demo"):
+        self.total_seats = total_seats
+        self.event_id = event_id
+        self.store = BuggyInventoryStore(total_seats)
+
+    def replay_schedule(self, schedule: List[Tuple[str, int]]) -> ReplayResult:
+        """Apply a schedule in a fixed order to reproduce the bug."""
+        self.store = BuggyInventoryStore(self.total_seats)
+
+        for user_id, quantity in schedule:
+            self.store.book_seats(user_id, self.event_id, quantity)
+
+        failed_invariant = self.store.inventory["available"] < 0
+        return ReplayResult(
+            schedule=schedule,
+            available=self.store.inventory["available"],
+            booked=self.store.inventory["booked"],
+            operations=list(self.store.operations),
+            failed_invariant=failed_invariant,
+        )
+
+    def replay_workload(self, workload: List[Tuple[str, int]]) -> Dict[str, Any]:
+        """Convenience wrapper for replaying a workload."""
+        result = self.replay_schedule(workload)
+        return {
+            "schedule": result.schedule,
+            "available": result.available,
+            "booked": result.booked,
+            "operations": result.operations,
+            "failed_invariant": result.failed_invariant,
+        }
+
+
+def build_demo_schedule() -> List[Tuple[str, int]]:
+    """Create one deterministic schedule that oversells a single remaining seat."""
+    return [
+        ("user_1", 1),
+        ("user_2", 1),
+    ]
