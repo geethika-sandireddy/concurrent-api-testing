@@ -1,170 +1,83 @@
-# InterleaveLab 🔬
+# InterleaveLab
 
-**Deterministic Concurrency Bug Detection for Backend APIs**
+InterleaveLab is a Python project for detecting concurrency bugs in backend APIs. It focuses on a familiar problem: overselling inventory when multiple users act at the same time.
 
-A developer tool that detects race conditions and concurrency bugs in backend APIs by generating controlled request interleavings, checking application invariants, and producing reproducible evidence of failures.
+The project simulates concurrent booking requests, checks invariants, records a failing schedule, and replays the bug in a deterministic way.
 
-## 🎯 Problem Statement
+## What it does
 
-Imagine an online booking system with one seat remaining. Two users book it simultaneously—and both receive confirmation. Ordinary tests miss this bug. **InterleaveLab detects it**, reproduces it, and generates a test you can replay after fixing.
+- Generates concurrent API-style workloads
+- Checks for overselling and broken invariants
+- Records the request sequence that caused the failure
+- Replays the failing schedule deterministically
+- Provides a small benchmark output for comparison
 
-## ✨ Core Features
+## Why this project is useful
 
-- **Concurrent Workload Generation**: Simulate simultaneous API requests with controlled timing
-- **Invariant Checking**: Detect violations like overselling inventory or duplicate processing
-- **Deterministic Replay**: Reproduce failures using recorded request schedules
-- **Counterexample Generation**: Show the exact sequence of events that caused the failure
-- **Automated Regression Testing**: Verify bugs don't reappear after fixes
-- **Benchmarking**: Measure detection rates, false positives, and execution time
+This is a good resume project because it demonstrates:
 
-## 🛠️ Tech Stack
+- backend API thinking
+- concurrency and race-condition analysis
+- test design
+- deterministic debugging
+- reproducible bug reports
 
-- **Backend**: Python 3.11+, FastAPI
-- **Database**: PostgreSQL
-- **Testing**: pytest, Hypothesis
-- **DevOps**: Docker, Docker Compose, GitHub Actions
-- **Concurrency**: asyncio, threading
-- **Monitoring**: Logging, metrics collection
+## Project structure
 
-## 📦 Project Structure
-
-```
+```text
 concurrent-api-testing/
-├── app/                          # FastAPI application
-│   ├── main.py                  # Application entry point
-│   ├── models.py                # Data models
-│   └── config.py                # Configuration
-├── core/                         # Core engine
-│   ├── workload_generator.py    # Concurrent workload simulation
-│   ├── scheduler.py             # Request scheduling & interleaving
-│   ├── invariant_checker.py     # Invariant violation detection
-│   └── replayer.py              # Deterministic replay system
-├── tests/                        # Test suite
-│   ├── test_workload.py
-│   ├── test_scheduler.py
-│   └── test_benchmarks.py
-├── examples/                     # Example scenarios
-│   └── booking_system.py         # Online booking bug example
-├── docker-compose.yml           # Local development stack
-├── requirements.txt             # Python dependencies
-└── README.md                    # This file
+├── app/
+│   ├── __init__.py
+│   ├── api.py
+│   ├── config.py
+│   ├── main.py
+│   ├── models.py
+│   └── store.py
+├── core/
+│   ├── __init__.py
+│   ├── benchmark.py
+│   ├── invariant_checker.py
+│   ├── replayer.py
+│   └── scheduler.py
+├── examples/
+│   └── booking_bug_demo.py
+├── tests/
+│   ├── __init__.py
+│   ├── test_replay.py
+│   └── test_scheduler.py
+├── .env.example
+├── .gitignore
+├── Dockerfile
+├── README.md
+├── docker-compose.yml
+├── requirements.txt
+└── setup.cfg
 ```
 
-## 🚀 Quick Start
-
-### Prerequisites
-- Python 3.11+
-- PostgreSQL 14+
-- Docker & Docker Compose (optional)
-
-### Local Setup
+## Quick start
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/geethika-sandireddy/concurrent-api-testing.git
-cd concurrent-api-testing
-
-# 2. Create virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# 3. Install dependencies
+source venv/bin/activate
 pip install -r requirements.txt
-
-# 4. Set up database
-createdb interleavelab  # Or use Docker Compose
-
-# 5. Run the application
-uvicorn app.main:app --reload --port 8000
+pytest -q
 ```
 
-### Using Docker Compose
-
-```bash
-docker-compose up -d
-# Application will be available at http://localhost:8000
-```
-
-## 📚 Usage Example
+## Example flow
 
 ```python
-from core.workload_generator import ConcurrentWorkload
-from core.scheduler import DeterministicScheduler
-from core.invariant_checker import InvariantChecker
+from core.scheduler import BuggyInventoryStore, InterleaveScheduler, build_booking_workload
 
-# Define a booking scenario
-workload = ConcurrentWorkload(
-    num_concurrent_users=10,
-    scenario="booking_system"
-)
+store = BuggyInventoryStore(total_seats=1)
+scheduler = InterleaveScheduler(store)
+workload = build_booking_workload(total_users=2, seats_per_booking=1)
+results = scheduler.run_workload(workload, max_workers=2)
 
-# Generate concurrent requests
-requests = workload.generate()
-
-# Run with deterministic scheduling
-scheduler = DeterministicScheduler()
-results = scheduler.execute(requests)
-
-# Check for invariant violations
-checker = InvariantChecker()
-violations = checker.check(results)
-
-if violations:
-    print(f"Found {len(violations)} bugs!")
-    for bug in violations:
-        print(f"  - {bug.description}")
+print(store.inventory)
 ```
 
-## 🔍 How It Works
+This intentionally produces a bad state where the available seat count goes below zero, which is the kind of bug the project helps detect.
 
-1. **Scenario Definition**: Define your API endpoints and user interactions
-2. **Workload Generation**: Create concurrent request patterns
-3. **Scheduling**: Control request timing to trigger race conditions
-4. **Execution**: Run requests against your API
-5. **Invariant Checking**: Detect violations in application state
-6. **Replay**: Reproduce failures deterministically
-7. **Report**: Generate detailed bug reports with counterexamples
+## Author
 
-## 📊 Benchmarking
-
-Run the included benchmarks to measure:
-- Bug detection rates
-- False positive ratio
-- Execution time per scenario
-- Memory usage
-
-```bash
-pytest tests/test_benchmarks.py -v --benchmark-only
-```
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-pytest tests/ -v
-
-# Run with coverage
-pytest tests/ --cov=core --cov-report=html
-
-# Run only unit tests
-pytest tests/ -m unit -v
-
-# Run property-based tests
-pytest tests/ -m hypothesis -v
-```
-
-## 🤝 Contributing
-
-This project is built for learning and resume building. Contributions are welcome!
-
-## 📝 License
-
-MIT License - See LICENSE file for details
-
-## 👤 Author
-
-- **Geethika Sandireddy** - [@geethika-sandireddy](https://github.com/geethika-sandireddy)
-
----
-
-**Made with ❤️ for detecting and fixing concurrency bugs**
+Geethika Sandireddy

@@ -1,0 +1,59 @@
+"""Deterministic replay helpers for InterleaveLab."""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
+from core.scheduler import BuggyInventoryStore
+
+
+@dataclass
+class ReplayTrace:
+    """A replayed booking schedule and its final state."""
+    schedule: List[Tuple[str, int]]
+    available: int
+    booked: int
+    operations: List[str]
+    failed_invariant: bool
+
+
+class Replayer:
+    """Replays a recorded request schedule deterministically."""
+
+    def __init__(self, total_seats: int, event_id: str = "event_demo"):
+        self.total_seats = total_seats
+        self.event_id = event_id
+
+    def replay_schedule(self, schedule: List[Tuple[str, int]]) -> ReplayTrace:
+        """Run a fixed schedule against the buggy store to reproduce the bug."""
+        store = BuggyInventoryStore(self.total_seats)
+
+        for user_id, quantity in schedule:
+            store.book_seats(user_id, self.event_id, quantity)
+
+        return ReplayTrace(
+            schedule=schedule,
+            available=store.inventory["available"],
+            booked=store.inventory["booked"],
+            operations=list(store.operations),
+            failed_invariant=store.inventory["available"] < 0,
+        )
+
+    def replay_workload(self, workload: List[Tuple[str, int]]) -> Dict[str, Any]:
+        """Return a replay summary in plain dictionary form."""
+        replay = self.replay_schedule(workload)
+        return {
+            "schedule": replay.schedule,
+            "available": replay.available,
+            "booked": replay.booked,
+            "operations": replay.operations,
+            "failed_invariant": replay.failed_invariant,
+        }
+
+
+def build_demo_schedule() -> List[Tuple[str, int]]:
+    """Create a deterministic oversell scenario with one seat left."""
+    return [
+        ("user_1", 1),
+        ("user_2", 1),
+    ]
