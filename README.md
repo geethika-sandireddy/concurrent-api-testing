@@ -77,7 +77,3 @@ print(store.inventory)
 ```
 
 This intentionally produces a bad state where the available seat count goes below zero, which is the kind of bug the project helps detect.
-
-## Author
-
-Geethika Sandireddy
